@@ -1,0 +1,8 @@
+CREATE SCHEMA Sec2_Ex3;
+
+CREATE TABLE students_constraint (
+maSV VARCHAR(10) PRIMARY KEY,
+hoTen VARCHAR(20) NOT NULL,
+email VARCHAR(100) UNIQUE,
+age INT CHECK(age <=18)
+);
