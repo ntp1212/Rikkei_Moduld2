@@ -1,0 +1,53 @@
+CREATE DATABASE Sec4_Ex5;
+USE Sec4_Ex5;
+SET SQL_SAFE_UPDATES = 0;
+CREATE TABLE employees  (
+emp_id  VARCHAR(20) PRIMARY KEY,
+full_name  VARCHAR(50) NOT NULL,
+birth_year YEAR,
+department  VARCHAR(20) NOT NULL,
+salary DECIMAL NOT NULL,
+phone INT
+);
+INSERT INTO employees 
+VALUES ('EMP001','Nguyen Thi Anh','2000','HR',5000000,0123598745);
+INSERT INTO employees 
+VALUES ('EMP002','Tran Thi Anh Tuyet','2004','QA',35000000,0359751654);
+INSERT INTO employees 
+VALUES ('EMP003','Nguyen Thu An','2001','IT',25000000,0189256134);
+INSERT INTO employees 
+VALUES ('EMP004','Nguyen Van Bang','1995','IT',56000000,0563147125);
+INSERT INTO employees 
+VALUES ('EMP005','Khuat Duy Cuong','2000','SALES',12000000,0123598745);
+INSERT INTO employees 
+VALUES ('EMP006','Nguyen Thuy Van','1997','SALES',5000000,0123598745);
+INSERT INTO employees 
+VALUES ('EMP007','Nguyen Manh Duong','2001','HR',8000000,NULL);
+INSERT INTO employees 
+VALUES ('EMP008','Nguyen Thi Thuy','2000','HR',9000000,057189756);
+INSERT INTO employees 
+VALUES ('EMP009','Nguyen Vu Ngoc Han','1990','SALES',11000000,NULL);
+INSERT INTO employees 
+VALUES ('EMP0010','Nguyen Ngoc Linh','2000','QA',35000000,045039547);
+INSERT INTO employees 
+VALUES ('EMP0011','Khuat Ngoc Thanh','2000','DI',24000000,NULL);
+INSERT INTO employees 
+VALUES ('EMP0012','Nguyen Van Viet','2000','DI',36000000,038759742);
+
+SELECT * FROM employees
+WHERE salary BETWEEN 10000000 AND 20000000;
+SELECT * FROM employees
+WHERE department IN ('IT','HR');
+SELECT * FROM employees
+WHERE full_name LIKE '%Anh%';
+SELECT * FROM employees
+WHERE phone IS NULL;
+UPDATE employees 
+SET salary = salary * 1.1
+WHERE department ='IT';
+UPDATE employees
+SET phone ='0254812341'
+WHERE phone IS NULL;
+DELETE FROM employees
+WHERE salary < 5000000;
+SELECT * FROM employees;
