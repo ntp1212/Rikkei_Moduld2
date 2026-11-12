@@ -119,3 +119,92 @@ ORDER BY credits DESC
 LIMIT 2
 OFFSET 2;
 
+-- Phần 4: Truy vấn nâng cao
+-- Câu 1: Liệt kê các thông tin xử lý học vụ gồm tên môn học, 
+-- họ tên sv, chuyên ngành, số tín chỉ và thời gian đăng ký 
+SELECT c.course_name, s.full_name, s.major, e.credits, e.enroll_time 
+FROM courses c
+JOIN erollments e
+ON c.course_id = e.course_id
+JOIN students s
+ON e.student_id = s.student_id;
+-- Câu 2: Liệt kê các thông tin dinh viên gồm họ tên sv, và tổng số tín chỉ
+-- mà sv đó đã tích lũy (chỉ tính các đk trạng thái Completed), chỉ hiển thị những 
+-- sv có tổng số tín lớn hơn 120
+SELECT s.full_name, SUM(e.credits) AS total_credits FROM students s
+JOIN erollments e ON s.student_id = e.student_id
+WHERE e.status = 'Completed'
+GROUP BY s.student_id
+HAVING total_credits > 120;
+-- Câu 3: Liệt kê các thông tin sv gồm student_id, full_name và gpa của những sv có GPA cao nhất
+SELECT student_id, full_name, gpa
+FROM students
+WHERE GPA = (SELECT MAX(gpa) FROM students);
+-- Phần 5 
+-- Câu 1: Tạo 1 chỉ mục trên bảng enrollments dựa trên 2 tt là trạng thái 
+-- và số tín chỉ nhằm phục vụ việc tối ưu truy vấn
+CREATE INDEX idx_creadits ON erollments(credits);
+SHOW INDEX FROM erollments;
+CREATE INDEX idx_status ON erollments(status);
+SHOW INDEX FROM erollments;
+-- Câu 2:  Tạo một khung nhìn (view) dữ liệu hiển thị họ tên sinh viên, tổng số môn học đã 
+-- đăng ký và tổng số tín chỉ mà sinh viên đó đã tích lũy, trong đó không tính các môn bị hủy 
+-- (Dropped).
+CREATE VIEW vw_students AS SELECT s.full_name, COUNT(e.course_id) AS total_courses, SUM(e.credits) AS total_credits
+FROM students s
+JOIN erollments e ON s.student_id = e.student_id
+WHERE e.status <> 'Dropped'
+GROUP BY s.student_id;
+SELECT * FROM vw_students;
+-- PHẦN 6
+-- Câu 1 (5 điểm): Viết một trigger sao cho khi trạng thái của một bản ghi đăng ký trong bảng 
+-- enrollments  được cập nhật sang giá trị Completed thì hệ thống tự động thêm một bản ghi 
+-- mới vào bảng  academic_logs  với các thông tin sau: 
+-- • enrollment_id : mã bản ghi đăng ký vừa được cập nhật. 
+-- • student_id : sinh viên phụ trách bản ghi. 
+-- • note : 'Course completed'. 
+-- • log_time : thời gian hiện tại của hệ thống. 
+DELIMITER $$
+CREATE TRIGGER tg_update_status AFTER UPDATE
+ON erollments FOR EACH ROW
+BEGIN
+	-- Kiểm tra nếu trạng thái vừa được cập nhật thành 'Completed'
+    IF NEW.status = 'Completed' AND OLD.status <> 'Completed' THEN
+        -- Thêm một bản ghi mới vào bảng academic_logs theo đúng yêu cầu
+        INSERT INTO academic_logs (enrollment_id, student_id, log_time, note)
+        VALUES (NEW.enrollment_id, NEW.student_id, NOW(), 'Course completed');
+    END IF;
+END $$
+DELIMITER ;
+-- Câu 2 (5 điểm): Viết một trigger sao cho khi thêm mới một bản ghi vào bảng enrollments có 
+-- trạng thái Completed thì hệ thống tự động tăng điểm trung bình GPA của sinh viên tương ứng 
+-- trong bảng students thêm 0.1, nhưng đảm bảo điểm GPA không vượt quá 4.0. 
+DELIMITER $$
+
+CREATE TRIGGER tg_after_insert_enrollment AFTER INSERT
+ON erollments FOR EACH ROW
+BEGIN
+    -- Kiểm tra nếu bản ghi đăng ký mới có trạng thái là 'Completed'
+    IF NEW.status = 'Completed' THEN
+        -- Tăng GPA thêm 0.1 nhưng không vượt quá tối đa 4.0
+        UPDATE students
+        SET gpa = LEAST(4.0, gpa + 0.1)
+        WHERE student_id = NEW.student_id;
+    END IF;
+END $$
+
+DELIMITER ;
+
+-- PHẦN 7: STORED PROCEDURE (10 ĐIỂM) 
+-- Câu 1 (5 điểm): Viết một stored procedure nhận vào mã sinh viên và trả về một thông báo kết 
+-- quả, trong đó: • Nếu tổng số tín chỉ Completed của sinh viên > 100 thì trả về 'Excellent progress'. 
+-- • Nếu bằng 100 thì trả về 'Target met'. 
+-- • Nếu nhỏ hơn 100 thì trả về 'Normal progress'. 
+-- Câu 2 (5 điểm): Viết một stored procedure để thực hiện việc chuyển nhượng quyền tham gia lớp 
+-- học (đổi sinh viên) cho một mã đăng ký, gồm các bước sau: 
+-- • Bước 1: Bắt đầu quá trình xử lý (Transaction). 
+-- • Bước 2: Cập nhật mã sinh viên mới cho bản ghi đăng ký trong bảng enrollments. 
+-- • Bước 3: Ghi một bản ghi mới vào bảng academic_logs với ghi chú 'Student reassigned'. 
+-- • Bước 4: Nếu toàn bộ quá trình thành công thì hoàn tất (Commit), nếu xảy ra lỗi ở bất kỳ bước 
+-- nào thì hủy toàn bộ thao tác (Rollback). 
+-- (Bonus điểm : clean code, đầy đủ comment, trình bày đẹp cộng tối đa 5 điểm). 
